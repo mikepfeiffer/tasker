@@ -67,7 +67,7 @@ records the app's single direct dependency.
 - Starts with Alice's sample tasks. Switch to Bob from the account menu.
 - Adds a task with a title and an optional due date.
 - Marks a task complete and reopens it.
-- Filters all, open, and completed tasks, with counts.
+- Filters all, open, completed, and due-today tasks, with counts.
 - Downloads the current person's complete task history as a CSV spreadsheet file.
 - Saves tasks in `.instance/tasker.sqlite3`, including across server restarts.
 

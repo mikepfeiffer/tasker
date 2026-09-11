@@ -17,7 +17,7 @@ from werkzeug.exceptions import HTTPException, ServiceUnavailable
 
 ROOT = Path(__file__).resolve().parent
 DEMO_USERS = ((1, "Alice"), (2, "Bob"))
-FILTERS = ("all", "open", "completed")
+FILTERS = ("all", "open", "completed", "today")
 
 
 def now():
@@ -176,14 +176,20 @@ def create_app(test_config=None):
 
     def task_page(errors=None, form=None, status=200):
         tasks = user_tasks()
+        # "Today" is the local calendar date, matching the due-date labels and sample data.
+        today = date.today()
+        due_today = [task for task in tasks if not task["completed"] and task["due_date"] == today.isoformat()]
         counts = {
             "all": len(tasks),
             "open": sum(not task["completed"] for task in tasks),
             "completed": sum(bool(task["completed"]) for task in tasks),
+            "today": len(due_today),
         }
         active = selected_filter()
-        visible = [task for task in tasks if active == "all" or bool(task["completed"]) == (active == "completed")]
-        today = date.today()
+        if active == "today":
+            visible = due_today
+        else:
+            visible = [task for task in tasks if active == "all" or bool(task["completed"]) == (active == "completed")]
         return render_template(
             "index.html", tasks=visible, counts=counts, active=active,
             today=today.isoformat(), date_heading=today.strftime("%A, %B ") + str(today.day),
