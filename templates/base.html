@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tasker is a simple personal task list. Add a task, set a date, and make a little progress.">
+  <title>Tasker · My tasks</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='agent-tools.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to tasks</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="Tasker home">
+        <span class="brand-mark" aria-hidden="true">{{ icon('check') }}</span>
+        tasker<span class="brand-period">.</span>
+      </a>
+      {% if g.user %}
+      <details class="account-menu">
+        <summary aria-label="Switch demo account. Current account: {{ g.user.name }}">
+          <span class="avatar {{ 'bob' if g.user.id == 2 else '' }}">{{ g.user.name[0] }}</span>
+          <span class="account-name">{{ g.user.name }}<span class="account-caption">Demo account</span></span>
+          {{ icon('chevron') }}
+        </summary>
+        <div class="account-popover">
+          <p class="menu-label">SWITCH DEMO ACCOUNT</p>
+          {% for id, name in demo_users %}
+          <form method="post" action="{{ url_for('switch_user') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="user_id" value="{{ id }}">
+            <button class="account-option" type="submit" {% if id == g.user.id %}aria-current="true"{% endif %}>
+              <span class="avatar {{ 'bob' if id == 2 else '' }}">{{ name[0] }}</span>
+              <span>{{ name }}<small>{{ 'Current account' if id == g.user.id else 'View their task list' }}</small></span>
+              {% if id == g.user.id %}{{ icon('check') }}{% endif %}
+            </button>
+          </form>
+          {% endfor %}
+          <p class="menu-note">Fictional accounts for the course.<br>No passwords needed.</p>
+        </div>
+      </details>
+      {% endif %}
+    </div>
+  </header>
+  <main id="main" class="workspace">{% block content %}{% endblock %}</main>
+  <footer class="footer">
+    <span>{{ icon('layers') }} A small app for making progress.</span>
+    <span>Course demo <span class="footer-separator">/</span> Saved on this computer</span>
+  </footer>
+</body>
+</html>

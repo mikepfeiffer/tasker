@@ -1,0 +1,76 @@
+{% from 'icons.html' import icon %}
+{% extends 'base.html' %}
+{% block content %}
+  <section class="page-heading" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">{{ g.user.name | upper }}'S WORKSPACE</p>
+      <h1 id="page-title">My tasks<span class="title-dot">.</span></h1>
+      <p class="page-description">{% if counts.open %}You have <strong>{{ counts.open }} open {{ 'task' if counts.open == 1 else 'tasks' }}</strong>. One thing at a time.{% else %}All caught up. Enjoy a little breathing room.{% endif %}</p>
+    </div>
+    <p class="today-label">{{ icon('calendar') }} {{ date_heading }}</p>
+  </section>
+
+  {% for message in get_flashed_messages() %}
+  <div class="notice" role="status">{{ icon('check') }}<span>{{ message }}</span><button type="button" class="dismiss-notice" aria-label="Dismiss notification">{{ icon('close') }}</button></div>
+  {% endfor %}
+
+  <section class="composer" aria-labelledby="new-task-heading">
+    <div class="composer-heading"><span class="small-plus">{{ icon('plus') }}</span><h2 id="new-task-heading">Add a task</h2></div>
+    <form method="post" action="{{ url_for('add_task') }}" class="task-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="filter" value="{{ active }}">
+      <div class="title-field field">
+        <label for="task-title">What needs to get done?</label>
+        <input id="task-title" name="title" type="text" placeholder="e.g. Book the meeting room" maxlength="100" required autocomplete="off" value="{{ form.get('title', '') }}" {% if errors.title %}aria-invalid="true" aria-describedby="title-error" autofocus{% endif %}>
+        {% if errors.title %}<p class="field-error" id="title-error" role="alert">{{ errors.title }}</p>{% endif %}
+      </div>
+      <div class="date-field field">
+        <label for="due-date">Due date <span>(optional)</span></label>
+        <input id="due-date" name="due_date" type="date" value="{{ form.get('due_date', '') }}" {% if errors.due_date %}aria-invalid="true" aria-describedby="date-error"{% endif %}>
+        {% if errors.due_date %}<p class="field-error" id="date-error" role="alert">{{ errors.due_date }}</p>{% endif %}
+      </div>
+      <button class="primary-button" type="submit">{{ icon('plus') }} Add task</button>
+    </form>
+  </section>
+
+  <section class="task-section" aria-label="Your task list">
+    <div class="list-toolbar">
+      <nav class="filters" aria-label="Filter tasks">
+        {% for value, label in [('all', 'All tasks'), ('open', 'Open'), ('completed', 'Completed')] %}
+        <a href="{{ url_for('index', filter=value) }}" class="filter {{ 'active' if active == value else '' }}" {% if active == value %}aria-current="page"{% endif %}>{{ label }}<span class="filter-count">{{ counts[value] }}</span></a>
+        {% endfor %}
+      </nav>
+      <a class="export-button" href="{{ url_for('export_tasks') }}" download title="Download all of your tasks as a CSV file">{{ icon('download') }}<span>Download history</span></a>
+    </div>
+    <div class="task-panel">
+      <div class="list-labels" aria-hidden="true"><span>TASK</span><span>DUE DATE</span></div>
+      {% if tasks %}
+      <ul class="task-list">
+        {% for task in tasks %}
+        <li class="task-row {{ 'is-complete' if task.completed else '' }}" data-task-id="{{ task.id }}">
+          <form method="post" action="{{ url_for('complete_task', task_id=task.id) }}" class="complete-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="filter" value="{{ active }}">
+            <input type="hidden" name="completed" value="{{ 0 if task.completed else 1 }}">
+            <button class="task-checkbox" type="submit" aria-label="{{ 'Reopen' if task.completed else 'Complete' }}: {{ task.title }}" title="{{ 'Move back to open' if task.completed else 'Mark complete' }}">{% if task.completed %}{{ icon('check') }}{% endif %}</button>
+          </form>
+          <span class="task-title">{{ task.title }}</span>
+          <span class="task-date {{ 'due-today' if task.due_date == today and not task.completed else 'overdue' if task.due_date and task.due_date < today and not task.completed else 'undated' if not task.due_date else '' }}">
+            {% if task.due_date %}{{ icon('calendar') }}{% endif %}
+            {{ task.due_date | due_label }}{% if task.due_date and task.due_date < today and not task.completed %}<span class="overdue-label"> · Overdue</span>{% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <span class="empty-icon">{{ icon('check' if active == 'open' else 'list') }}</span>
+        <h2>{{ 'All caught up!' if active == 'open' else 'No completed tasks yet' if active == 'completed' else 'A fresh start' }}</h2>
+        <p>{{ 'Your open list is clear. Add a task whenever you need to.' if active == 'open' else 'Check off a task and it will appear here.' if active == 'completed' else 'Add your first task above. A little progress starts here.' }}</p>
+      </div>
+      {% endif %}
+      <div class="list-footer"><span>{{ counts.completed }} of {{ counts.all }} tasks completed</span><span>{{ icon('check') }} Saved</span></div>
+    </div>
+    <p class="list-hint">Check off a task to complete it. You can always open it again.</p>
+  </section>
+{% endblock %}

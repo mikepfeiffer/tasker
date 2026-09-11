@@ -1,0 +1,10 @@
+{% from 'icons.html' import icon %}
+{% extends 'base.html' %}
+{% block content %}
+<section class="error-panel">
+  <p class="eyebrow">{{ error.code }}</p>
+  <h1>{{ error.name }}</h1>
+  <p>{{ error.description }}</p>
+  <a class="primary-button" href="{{ url_for('index') }}">Back to my tasks</a>
+</section>
+{% endblock %}

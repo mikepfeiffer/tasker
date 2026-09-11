@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python 3.12 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        working-directory: tasker demo
+    steps:
+      - name: Check out source into a path containing spaces
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: tasker demo
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install the Windows demo environment
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: call setup.cmd
+      - name: Test the Windows launcher from a different directory
+        if: runner.os == 'Windows'
+        working-directory: ${{ runner.temp }}
+        shell: cmd
+        run: call "%GITHUB_WORKSPACE%\tasker demo\run.cmd" --help
+      - name: Run acceptance checks on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: .venv\Scripts\python.exe -m unittest discover -s tests -v
+      - name: Install the Linux demo environment
+        if: runner.os != 'Windows'
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.lock.txt
+          .venv/bin/python -m pip check
+      - name: Run acceptance checks on Linux
+        if: runner.os != 'Windows'
+        run: .venv/bin/python -m unittest discover -s tests -v

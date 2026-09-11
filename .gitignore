@@ -1,0 +1,16 @@
+.venv/
+.instance/
+__pycache__/
+*.py[cod]
+.DS_Store
+.pytest_cache/
+.sites-runtime/
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-*
+*.db
+*.key
+Thumbs.db
+Desktop.ini
