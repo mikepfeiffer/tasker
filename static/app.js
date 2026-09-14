@@ -15,5 +15,7 @@ document.querySelectorAll('.dismiss-notice').forEach((button) => {
 // Reject whitespace-only names before submitting, matching the server's validation.
 const titleInput = document.querySelector('#task-title');
 titleInput?.addEventListener('input', () => {
-  titleInput.setCustomValidity(titleInput.value.trim() ? '' : 'Give your task a name.');
+  titleInput.setCustomValidity(
+    titleInput.value.trim() ? '' : 'Please enter a task name.',
+  );
 });
