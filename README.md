@@ -18,8 +18,8 @@ cd tasker
 .\run.cmd
 ```
 
-The repository is private, so authenticate Git on this machine before cloning.
-If using GitHub CLI, run `gh auth login` and `gh auth setup-git` once on Windows.
+The repository is public, so cloning does not require signing in. To push your own
+changes using GitHub CLI, run `gh auth login` and `gh auth setup-git` once on Windows.
 The Mac's GitHub sign-in does not transfer to another machine.
 
 `setup.cmd` creates a Windows virtual environment and installs the pinned
@@ -136,6 +136,29 @@ specified cases, not a general production-security guarantee.
 GitHub Actions runs the checks on Windows and Linux using Python 3.12. The Windows
 job also runs the actual setup helper and checks the launcher from outside the
 project directory. Both jobs check out the source into a folder containing spaces.
+
+### GitHub Actions: tests, then CodeQL
+
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) defines the **Tests and
+security** workflow. It runs on pushes to `main`, pull requests, and manual runs
+from **Actions → Tests and security → Run workflow**.
+
+1. **Unit tests:** run the existing checks on Windows and Linux with Python 3.12.
+2. **CodeQL:** `needs: test` waits for both test jobs to pass, then scans the Python
+   source with the default security queries. Python needs no build step. If tests
+   fail, the scan is skipped.
+
+Tests execute specific examples; CodeQL looks for unsafe patterns and data flows
+in source code. This scan covers Python, not dependency vulnerabilities or the
+running website. Results appear under **Security → Code scanning** and on pull
+requests. A successful analysis job means the scan completed; the separate
+**Code scanning results / CodeQL** PR check fails for high or critical security
+findings by default. See [GitHub's explanation of scan checks](https://docs.github.com/en/code-security/how-tos/manage-security-alerts/manage-code-scanning-alerts/triage-alerts-in-pull-requests).
+
+This workflow uses CodeQL **advanced setup**. Keep default setup disabled to avoid
+conflicting uploads. CodeQL is free for this public repository; private copies
+need an eligible organization plan with GitHub Code Security enabled. See
+[GitHub's setup requirements](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configuring-advanced-setup-for-code-scanning).
 
 ## Reset for another recording
 

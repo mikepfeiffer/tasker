@@ -1,4 +1,4 @@
-name: Tests
+name: Tests and security
 
 on:
   push:
@@ -53,3 +53,25 @@ jobs:
       - name: Run acceptance checks on Linux
         if: runner.os != 'Windows'
         run: .venv/bin/python -m unittest discover -s tests -v
+
+  codeql:
+    name: CodeQL security scan (Python)
+    # Start the scan only after both test jobs pass.
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # Upload findings to GitHub's code scanning results.
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL for Python
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          build-mode: none
+      - name: Analyze code and upload security findings
+        uses: github/codeql-action/analyze@v4
