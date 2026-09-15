@@ -160,12 +160,14 @@ def create_app(test_config=None):
     def user_tasks(search=None):
         # The owner restriction is server-side, even if a request supplies another user_id.
         query = "SELECT * FROM tasks WHERE user_id = ?"
+        parameters = [g.user["id"]]
         if search:
-            # Deliberately unsafe lesson checkpoint: CodeQL should flag this interpolation.
-            query += f" AND title LIKE '%{search}%'"
+            # Bind search text as data so it cannot change the SQL or owner restriction.
+            query += " AND title LIKE ?"
+            parameters.append(f"%{search}%")
         query += " ORDER BY completed, due_date IS NULL, due_date, id DESC"
         return get_db().execute(
-            query, (g.user["id"],),
+            query, parameters,
         ).fetchall()
 
     def owned_task(task_id):
