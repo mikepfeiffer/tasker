@@ -43,6 +43,13 @@ class TaskerTests(unittest.TestCase):
         self.assertIn("Water the plants", bob_page)
         self.assertNotIn('<span class="task-title">Book the meeting room</span>', bob_page)
 
+    def test_api_search_finds_matching_titles_for_the_current_user(self):
+        self.post(self.alice, "/tasks", title="Plan Alice's demo")
+        self.post(self.bob, "/tasks", title="Plan Bob's demo")
+        response = self.bob.get("/api/tasks", query_string={"q": "demo", "user_id": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([task["title"] for task in response.get_json()["tasks"]], ["Plan Bob's demo"])
+
     def test_add_task_persists_with_its_date_and_owner_after_restart(self):
         response = self.post(self.alice, "/tasks", title="  Plan the workshop  ", due_date="2027-01-20", user_id="2")
         self.assertEqual(response.status_code, 303)

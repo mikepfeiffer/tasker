@@ -157,12 +157,15 @@ def create_app(test_config=None):
         value = request.values.get("filter", "all")
         return value if value in FILTERS else "all"
 
-    def user_tasks():
+    def user_tasks(search=None):
         # The owner restriction is server-side, even if a request supplies another user_id.
+        query = "SELECT * FROM tasks WHERE user_id = ?"
+        if search:
+            # Deliberately unsafe lesson checkpoint: CodeQL should flag this interpolation.
+            query += f" AND title LIKE '%{search}%'"
+        query += " ORDER BY completed, due_date IS NULL, due_date, id DESC"
         return get_db().execute(
-            "SELECT * FROM tasks WHERE user_id = ? "
-            "ORDER BY completed, due_date IS NULL, due_date, id DESC",
-            (g.user["id"],),
+            query, (g.user["id"],),
         ).fetchall()
 
     def owned_task(task_id):
@@ -250,7 +253,7 @@ def create_app(test_config=None):
 
     @app.get("/api/tasks")
     def list_tasks():
-        return jsonify(tasks=[dict(task) for task in user_tasks()])
+        return jsonify(tasks=[dict(task) for task in user_tasks(request.args.get("q"))])
 
     @app.get("/api/tasks/<int:task_id>")
     def get_task(task_id):
