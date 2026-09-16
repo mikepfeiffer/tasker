@@ -137,7 +137,7 @@ GitHub Actions runs the checks on Windows and Linux using Python 3.12. The Windo
 job also runs the actual setup helper and checks the launcher from outside the
 project directory. Both jobs check out the source into a folder containing spaces.
 
-### GitHub Actions: tests, then CodeQL
+### GitHub Actions: tests and security
 
 [`.github/workflows/tests.yml`](.github/workflows/tests.yml) defines the **Tests and
 security** workflow. It runs on pushes to `main`, pull requests, and manual runs
@@ -147,10 +147,13 @@ from **Actions → Tests and security → Run workflow**.
 2. **CodeQL:** `needs: test` waits for both test jobs to pass, then scans the Python
    source with the default security queries. Python needs no build step. If tests
    fail, the scan is skipped.
+3. **Dependency review:** on pull requests, another job runs after the tests and
+   checks added or updated packages against known vulnerability advisories. It
+   fails for any severity (`low` or higher), across all dependency scopes. It runs
+   alongside CodeQL and needs only the workflow's read access to repository content.
 
 Tests execute specific examples; CodeQL looks for unsafe patterns and data flows
-in source code. This scan covers Python, not dependency vulnerabilities or the
-running website. Results appear under **Security → Code scanning** and on pull
+in Python source code. CodeQL results appear under **Security → Code scanning** and on pull
 requests. A successful analysis job means the scan completed; the separate
 **Code scanning results / CodeQL** PR check fails for high or critical security
 findings by default. See [GitHub's explanation of scan checks](https://docs.github.com/en/code-security/how-tos/manage-security-alerts/manage-code-scanning-alerts/triage-alerts-in-pull-requests).
@@ -159,6 +162,15 @@ This workflow uses CodeQL **advanced setup**. Keep default setup disabled to avo
 conflicting uploads. CodeQL is free for this public repository; private copies
 need an eligible organization plan with GitHub Code Security enabled. See
 [GitHub's setup requirements](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configuring-advanced-setup-for-code-scanning).
+
+Dependency review is **Software Composition Analysis (SCA)**: it checks third-party
+package versions using GitHub's dependency graph and advisory data. Enable
+**Settings → Advanced Security → Dependency graph** before the first run. Open
+the PR's **Dependency review (third-party packages)** job to see its summary.
+This review compares dependency changes in the PR. It skips pushes and manual
+runs, and does not audit unchanged packages. Dependabot alerts provide ongoing
+checks for vulnerabilities in existing dependencies. See
+[GitHub's dependency review documentation](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review).
 
 ## Reset for another recording
 

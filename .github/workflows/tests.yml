@@ -75,3 +75,23 @@ jobs:
           build-mode: none
       - name: Analyze code and upload security findings
         uses: github/codeql-action/analyze@v4
+
+  dependency-review:
+    name: Dependency review (third-party packages)
+    # Dependency review compares the packages before and after a pull request.
+    if: github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Check dependency changes for known vulnerabilities
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: low # Fail on any known vulnerability in a dependency change.
+          fail-on-scopes: runtime, development, unknown
+          license-check: false
+          show-openssf-scorecard: false
