@@ -12,6 +12,8 @@ permissions:
 jobs:
   run-app-tests:
     name: Run app tests (${{ matrix.platform }})
+    # Validate PRs before merging; keep manual runs available for troubleshooting.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -60,8 +62,9 @@ jobs:
 
   codeql:
     name: CodeQL security scan (Python)
-    # Start the scan only after both test jobs pass.
+    # PRs and manual runs wait for passing tests. Pushes to main scan with tests skipped.
     needs: run-app-tests
+    if: ${{ !cancelled() && (github.event_name == 'push' || needs.run-app-tests.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

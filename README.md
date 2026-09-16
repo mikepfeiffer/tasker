@@ -143,10 +143,22 @@ project directory. Both jobs check out the source into a folder containing space
 security** workflow. It runs on pushes to `main`, pull requests, and manual runs
 from **Actions → Tests and security → Run workflow**.
 
-1. **Unit tests:** run the existing checks on Windows and Linux with Python 3.12.
-2. **CodeQL:** `needs: test` waits for both test jobs to pass, then scans the Python
-   source with the default security queries. Python needs no build step. If tests
-   fail, the scan is skipped.
+| Trigger | Windows and Linux tests | CodeQL | Dependency review |
+| --- | --- | --- | --- |
+| Pull request | Run | After tests pass | After tests pass |
+| Push or merge to `main` | Skip | Run | Skip |
+| Manual run | Run | After tests pass | Skip |
+
+1. **Unit tests:** run the existing checks on Windows and Linux with Python 3.12
+   before merging a pull request, or when started manually. They do not repeat
+   after a merge to `main`; configure branch protection below to require them
+   before merging.
+2. **CodeQL:** scans the Python source with the default security queries. On PRs
+   and manual runs, `needs: run-app-tests` waits for both test jobs to pass; if
+   tests fail, the scan is skipped. On pushes to `main`, the scan runs even though
+   the test jobs are skipped, keeping the default branch's security alerts current.
+   Python needs no build step. Canceling the workflow also prevents the scan from
+   starting.
 3. **Dependency review:** on pull requests, another job runs after the tests and
    checks added or updated packages against known vulnerability advisories. It
    fails for any severity (`low` or higher), across all dependency scopes. It runs
@@ -171,6 +183,36 @@ This review compares dependency changes in the PR. It skips pushes and manual
 runs, and does not audit unchanged packages. Dependabot alerts provide ongoing
 checks for vulnerabilities in existing dependencies. See
 [GitHub's dependency review documentation](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review).
+
+### Branch protection for your own GitHub repository
+
+If you fork this repository or publish a clone to your own GitHub repository,
+configure branch protection there. These rules live in GitHub settings, not in
+the workflow file, and cloning the code does not configure them for you.
+
+1. Enable workflows in the **Actions** tab if prompted. Open a pull request in
+   your repository and let the **Tests and security** workflow pass once so GitHub
+   can offer its check names in the settings.
+2. Go to **Settings → Branches**. Under **Branch protection rules**, choose
+   **Add classic branch protection rule**, or edit an existing rule for `main`.
+   Use `main` as the branch name pattern.
+3. Enable **Require a pull request before merging**. For a solo course repository,
+   leave **Require approvals** unchecked so you can merge your own PRs.
+4. Enable **Require status checks to pass before merging**, then enable
+   **Require branches to be up to date before merging**. Select both
+   **Run app tests (Windows)** and **Run app tests (Linux)**.
+5. To enforce the rule for your administrator account too, enable
+   **Do not allow bypassing the above settings**.
+6. Save the rule using **Create** or **Save changes**.
+
+Both tests must pass against the latest `main` before merging. If another PR is
+merged first, update your PR branch and let the checks run again. The setup above
+requires the app tests; CodeQL and dependency review still run on PRs, but are not
+made required by these selections. A successful CodeQL analysis job is separate
+from its findings check, as explained above.
+
+Branch protection is available for public repositories on GitHub Free; private
+repositories need an eligible paid plan. See [GitHub's branch protection instructions](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule).
 
 ## Reset for another recording
 
