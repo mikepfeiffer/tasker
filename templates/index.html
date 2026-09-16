@@ -1,10 +1,12 @@
 {% from 'icons.html' import icon %}
 {% extends 'base.html' %}
+{% set greeting = 'Hello, ' ~ g.user.name.split()[0] %}
+{% block title %}{{ greeting }}{% endblock %}
 {% block content %}
   <section class="page-heading" aria-labelledby="page-title">
     <div>
       <p class="eyebrow">{{ g.user.name | upper }}'S WORKSPACE</p>
-      <h1 id="page-title">My tasks<span class="title-dot">.</span></h1>
+      <h1 id="page-title">{{ greeting }}</h1>
       <p class="page-description">{% if counts.open %}You have <strong>{{ counts.open }} open {{ 'task' if counts.open == 1 else 'tasks' }}</strong>. One thing at a time.{% else %}All caught up. Enjoy a little breathing room.{% endif %}</p>
     </div>
     <p class="today-label">{{ icon('calendar') }} {{ date_heading }}</p>
