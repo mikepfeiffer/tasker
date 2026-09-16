@@ -10,14 +10,18 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Python 3.12 on ${{ matrix.os }}
+  run-app-tests:
+    name: Run app tests (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: Windows
+          - os: ubuntu-latest
+            platform: Linux
     defaults:
       run:
         working-directory: tasker demo
@@ -40,7 +44,7 @@ jobs:
         working-directory: ${{ runner.temp }}
         shell: cmd
         run: call "%GITHUB_WORKSPACE%\tasker demo\run.cmd" --help
-      - name: Run acceptance checks on Windows
+      - name: Run the app test suite on Windows
         if: runner.os == 'Windows'
         shell: cmd
         run: .venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -50,14 +54,14 @@ jobs:
           python -m venv .venv
           .venv/bin/python -m pip install -r requirements.lock.txt
           .venv/bin/python -m pip check
-      - name: Run acceptance checks on Linux
+      - name: Run the app test suite on Linux
         if: runner.os != 'Windows'
         run: .venv/bin/python -m unittest discover -s tests -v
 
   codeql:
     name: CodeQL security scan (Python)
     # Start the scan only after both test jobs pass.
-    needs: test
+    needs: run-app-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -80,7 +84,7 @@ jobs:
     name: Dependency review (third-party packages)
     # Dependency review compares the packages before and after a pull request.
     if: github.event_name == 'pull_request'
-    needs: test
+    needs: run-app-tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
