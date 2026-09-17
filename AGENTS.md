@@ -38,15 +38,22 @@ macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && python -m pi
 then `python app.py` and `python -m unittest discover -s tests -v`.
 
 There is no linter, formatter, pytest, or frontend build step configured; tests are stdlib `unittest`
-only. `requirements.txt` records the single direct dependency (Flask) and `requirements.lock.txt` is
-the fully pinned set that `setup.cmd` and CI install. Update both together when bumping Flask.
+only. `requirements.txt` records the direct dependencies (Flask and python-dotenv) and
+`requirements.lock.txt` is the fully pinned set that `setup.cmd` and CI install. Update both
+together when changing dependencies.
 
 ## Architecture
 
 All server code is in `app.py`, built by the `create_app(test_config=None)` factory. Routes are
 closures inside the factory; the module-level helpers (`get_db`, `seed_demo`, `read_or_create_key`,
-`now`) are what the tests import and patch. The `__main__` block owns the CLI flags (`--port`,
-`--reset-demo`, `--yes`).
+`now`) are what the tests import and patch. `main()` owns the CLI flags (`--port`,
+`--reset-demo`, `--yes`) and is called by the `__main__` block.
+
+**Local settings.** `main()` loads the optional `.env` beside `app.py` using python-dotenv,
+without overriding existing environment variables. Port priority is `--port`, `TASKER_PORT`
+in the environment, `TASKER_PORT` in `.env`, then 5050. `.env` is ignored; `.env.example` is
+the shared template. `OPENAI_API_KEY` is an unused placeholder for a future chatbot lesson;
+no API calls or chatbot interface exist yet. Importing `create_app` does not load `.env`.
 
 **Startup.** `create_app` creates `.instance/` (gitignored), reads or generates
 `.instance/session.key` as `SECRET_KEY` unless the config supplies one, runs `schema.sql` (all
@@ -106,6 +113,9 @@ that API.
 in `.instance/` is never touched. It prepares two clients, `self.alice` and `self.bob`, and a
 `post()` helper that reads the CSRF token out of the session before posting; use it for any write
 request in new tests.
+
+`tests/test_startup.py` checks `main()` with temporary `.env` files and an isolated
+environment. It replaces `create_app` so no server starts and no demo database is touched.
 
 The tests assert on rendered copy, for example the empty-state heading "A fresh start", the eyebrow
 "BOB'S WORKSPACE", and validation messages like "Choose a valid date". Changing user-facing strings

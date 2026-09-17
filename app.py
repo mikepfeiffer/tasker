@@ -9,6 +9,7 @@ import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import (
     Flask, Response, abort, flash, g, jsonify, redirect, render_template,
     request, session, url_for,
@@ -293,12 +294,19 @@ def create_app(test_config=None):
     return app
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    # Resolve local settings beside app.py, even when launched from another folder.
+    load_dotenv(ROOT / ".env", override=False, encoding="utf-8-sig")
     parser = argparse.ArgumentParser(description="Run the local Tasker course app.")
-    parser.add_argument("--port", type=int, default=5050)
+    parser.add_argument(
+        "--port", type=int, default=os.environ.get("TASKER_PORT", "5050"),
+        help="Local port (overrides TASKER_PORT from the environment or .env; default: 5050)",
+    )
     parser.add_argument("--reset-demo", action="store_true", help="Replace all tasks with the sample data")
     parser.add_argument("--yes", action="store_true", help="Confirm replacement of local demo data")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if not 1 <= args.port <= 65535:
+        parser.error("Choose a port from 1 to 65535 using --port or TASKER_PORT.")
     app = create_app()
     if args.reset_demo:
         if not args.yes:
@@ -311,4 +319,8 @@ if __name__ == "__main__":
             seed_demo(db)
         print("Tasker demo reset. Alice and Bob's sample tasks are ready.")
     else:
-        app.run(host="127.0.0.1", port=args.port, debug=False)
+        app.run(host="127.0.0.1", port=args.port, debug=False, load_dotenv=False)
+
+
+if __name__ == "__main__":
+    main()
