@@ -60,7 +60,60 @@ Open **http://127.0.0.1:5050**. Stop the server with Ctrl+C.
 If that port is busy, use `python app.py --port 5051`.
 After the initial setup, activate the environment and run `python app.py` again.
 `requirements.lock.txt` pins the course-demo dependencies; `requirements.txt`
-records the app's single direct dependency.
+records the app's direct dependencies.
+
+## Local settings and the .env classroom demo
+
+Tasker optionally reads a `.env` file beside `app.py` when started with `run.cmd`
+or `python app.py`. Run `.\setup.cmd` again after updating an existing checkout to
+install the added `python-dotenv` dependency. On macOS/Linux, use
+`python -m pip install -r requirements.lock.txt`.
+No `.env` file is required; the default port is 5050.
+
+To prepare the demo, copy `.env.example` to `.env` if you do not already have one:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+On macOS/Linux, use `cp .env.example .env`. Edit your local `.env`:
+
+```dotenv
+TASKER_PORT=5051
+OPENAI_API_KEY=bogus-key-for-classroom-demo
+```
+
+Start Tasker with `.\run.cmd` (macOS/Linux: `python app.py`) and open
+http://127.0.0.1:5051. Stop and restart the server after changing `.env`.
+An explicit `--port` takes priority, followed by an existing `TASKER_PORT`
+environment variable, then `.env`, then the default 5050. Ports must be whole
+numbers from 1 to 65535.
+
+`OPENAI_API_KEY` is a placeholder for a future chatbot interface. Tasker does not
+use it or make API calls. A bogus value is enough for this lesson; keep the value
+in `.env.example` blank. The existing session key still lives in
+`.instance/session.key`.
+
+Show students these existing `.gitignore` rules:
+
+```gitignore
+.env
+.env.*
+!.env.example
+```
+
+Then demonstrate the difference between shared configuration and local values:
+
+```powershell
+git check-ignore -v .env
+git status --short --ignored -- .env .env.example
+```
+
+The first command identifies the rule that excludes `.env`; the second marks it
+with `!!` (ignored). `.env.example` is allowed in Git so everyone has a template.
+Commit the template and application code, and keep personal settings and keys in
+the ignored `.env`. Ignoring a file does not encrypt it or remove it from Git if
+it was already tracked.
 
 ## What it does
 
@@ -108,9 +161,11 @@ server. These changes are outside this local starter's scope.
 | `static/app.js` | Optional browser conveniences |
 | `static/agent-tools.js` | Optional read-only task tool for browsers with WebMCP support |
 | `tests/test_app.py` | Observable acceptance and access-boundary checks |
+| `tests/test_startup.py` | Local settings, port precedence, and startup validation |
 
-Flask is the only direct dependency. SQLite, CSV handling, and the test runner are
-included with Python. There is no frontend build step.
+Flask serves the app, and `python-dotenv` loads optional local settings. SQLite,
+CSV handling, and the test runner are included with Python. There is no frontend
+build step.
 
 ## Run the checks
 
@@ -130,7 +185,8 @@ Tests use a separate temporary database. They do not alter the demo's saved task
 They cover persistence, exact title-length boundaries, date validation, completion,
 filters, account separation, exports, HTML escaping, request protection, empty
 accounts, a controlled database failure, Unicode CSV downloads, and generated
-session keys in folders containing spaces and non-ASCII text. Passing these checks establishes the
+session keys in folders containing spaces and non-ASCII text. Startup checks cover
+local settings, port precedence, and invalid ports. Passing these checks establishes the
 specified cases, not a general production-security guarantee.
 
 GitHub Actions runs the checks on Windows and Linux using Python 3.12. The Windows
