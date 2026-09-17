@@ -5,6 +5,7 @@ import io
 import sqlite3
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
@@ -162,6 +163,127 @@ class TaskerTests(unittest.TestCase):
         self.assertNotIn(b"\r\r\n", response.data)
         rows = list(csv.DictReader(io.StringIO(response.data.decode("utf-8-sig"), newline="")))
         self.assertIn(title, [row["Task"] for row in rows])
+
+
+class FixedDate(date):
+    """A stand-in for datetime.date whose today() is fixed, so date checks are repeatable."""
+
+    @classmethod
+    def today(cls):
+        return cls(2026, 3, 10)
+
+
+class DueTodayFilterTests(unittest.TestCase):
+    """The Due today view shows only the current account's open tasks due on the local date."""
+
+    TODAY, YESTERDAY, TOMORROW = "2026-03-10", "2026-03-09", "2026-03-11"
+    post = TaskerTests.post
+    tasks = TaskerTests.tasks
+
+    def setUp(self):
+        TaskerTests.setUp(self)
+        patcher = patch("app.date", FixedDate)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.replace_tasks(
+            (1, "Finish the report", self.TODAY, False),
+            (1, "Already done today", self.TODAY, True),
+            (1, "Missed yesterday", self.YESTERDAY, False),
+            (1, "Plan tomorrow", self.TOMORROW, False),
+            (1, "Someday task", None, False),
+            (2, "Bob is due today too", self.TODAY, False),
+        )
+
+    def replace_tasks(self, *rows):
+        with self.app.app_context():
+            db = get_db()
+            with db:
+                db.execute("DELETE FROM tasks")
+                db.executemany(
+                    "INSERT INTO tasks (user_id, title, due_date, completed, created_at, completed_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    [(user_id, title, due, int(done), "2026-03-01T09:00:00+00:00", "2026-03-10T09:00:00+00:00" if done else None)
+                     for user_id, title, due, done in rows],
+                )
+
+    def due_today_page(self, client=None):
+        return (client or self.alice).get("/?filter=today").get_data(as_text=True)
+
+    def listed_titles(self, html):
+        return html.split('<ul class="task-list">')[-1] if '<ul class="task-list">' in html else ""
+
+    def task_id(self, title):
+        return next(task["id"] for task in self.tasks(self.alice) if task["title"] == title)
+
+    def count_badge(self, html, value):
+        return html.split(f'filter={value}"')[1].split("</a>")[0].split('<span class="filter-count">')[1].split("</span>")[0]
+
+    def test_due_today_shows_only_alices_open_tasks_due_today(self):
+        html = self.due_today_page()
+        listed = self.listed_titles(html)
+        self.assertIn("Finish the report", listed)
+        for excluded in ("Already done today", "Missed yesterday", "Plan tomorrow", "Someday task", "Bob is due today too"):
+            with self.subTest(excluded=excluded):
+                self.assertNotIn(excluded, listed)
+        self.assertEqual(self.count_badge(html, "today"), "1")
+        self.assertIn('href="/?filter=today" class="filter active" aria-current="page">Due today', html)
+        self.assertNotIn("Nothing due today", html)
+
+    def test_existing_filter_counts_are_unchanged_by_the_new_filter(self):
+        html = self.alice.get("/").get_data(as_text=True)
+        self.assertEqual((self.count_badge(html, "all"), self.count_badge(html, "open"), self.count_badge(html, "completed")), ("5", "4", "1"))
+        self.assertEqual(self.count_badge(self.due_today_page(self.bob), "today"), "1")
+        self.assertIn("Bob is due today too", self.listed_titles(self.due_today_page(self.bob)))
+
+    def test_no_matching_tasks_shows_nothing_due_today_with_a_zero_count(self):
+        self.post(self.alice, f"/tasks/{self.task_id('Finish the report')}/complete", completed="1", filter="today")
+        html = self.due_today_page()
+        self.assertIn("<h2>Nothing due today</h2>", html)
+        self.assertEqual(self.count_badge(html, "today"), "0")
+        self.replace_tasks()
+        html = self.due_today_page()
+        self.assertIn("<h2>Nothing due today</h2>", html)
+        self.assertEqual(self.count_badge(html, "today"), "0")
+        self.assertIn("A fresh start", self.alice.get("/").get_data(as_text=True))
+
+    def test_completing_a_task_from_due_today_keeps_the_view_and_updates_the_count(self):
+        response = self.post(self.alice, f"/tasks/{self.task_id('Finish the report')}/complete", completed="1", filter="today")
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["Location"], "/?filter=today")
+        html = self.due_today_page()
+        self.assertNotIn("Finish the report", self.listed_titles(html))
+        self.assertEqual(self.count_badge(html, "today"), "0")
+        self.assertIn('class="filter active" aria-current="page">Due today', html)
+
+    def test_adding_tasks_from_due_today_keeps_the_view_and_lists_only_those_due_today(self):
+        for title, due in (("Call the bank", self.TODAY), ("Renew the passport", self.TOMORROW), ("Read a book", "")):
+            with self.subTest(title=title):
+                response = self.post(self.alice, "/tasks", title=title, due_date=due, filter="today")
+                self.assertEqual(response.status_code, 303)
+                self.assertEqual(response.headers["Location"], "/?filter=today")
+        saved = {task["title"]: task["due_date"] for task in self.tasks(self.alice)}
+        self.assertEqual((saved["Call the bank"], saved["Renew the passport"], saved["Read a book"]), (self.TODAY, self.TOMORROW, None))
+        html = self.due_today_page()
+        listed = self.listed_titles(html)
+        self.assertIn("Call the bank", listed)
+        self.assertNotIn("Renew the passport", listed)
+        self.assertNotIn("Read a book", listed)
+        self.assertEqual(self.count_badge(html, "today"), "2")
+
+    def test_refreshing_the_due_today_url_keeps_it_selected_and_ignores_unknown_filters(self):
+        for _ in range(2):
+            html = self.due_today_page()
+            self.assertIn('class="filter active" aria-current="page">Due today', html)
+            self.assertIn("Finish the report", self.listed_titles(html))
+        unknown = self.alice.get("/?filter=tomorrow").get_data(as_text=True)
+        self.assertIn('class="filter active" aria-current="page">All tasks', unknown)
+
+    def test_export_still_includes_all_tasks_when_due_today_is_selected(self):
+        response = self.alice.get("/exports/tasks.csv?filter=today")
+        rows = list(csv.DictReader(io.StringIO(response.get_data(as_text=True).lstrip("\ufeff"))))
+        self.assertEqual(list(rows[0].keys()), ["Task", "Status", "Due date", "Created at (UTC)", "Completed at (UTC)"])
+        self.assertEqual({row["Task"] for row in rows}, {task["title"] for task in self.tasks(self.alice)})
+        self.assertEqual(len(rows), 5)
 
 
 if __name__ == "__main__":
