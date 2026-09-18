@@ -150,6 +150,10 @@ server. These changes are outside this local starter's scope.
 
 ## Small code map
 
+Azure hosting resources are defined in [`infrastructure/`](infrastructure/README.md):
+a Linux App Service Web App on a Premium v4 P1V4 plan in West US 3. See that guide
+for Terraform setup and provisioning; deploying the application code is a separate step.
+
 | File | Purpose |
 | --- | --- |
 | `app.py` | Routes, validation, account ownership, database access, and CSV export |

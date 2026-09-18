@@ -14,3 +14,13 @@ __pycache__/
 *.key
 Thumbs.db
 Desktop.ini
+
+# Terraform local cache, state, variables, and saved plans.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+crash.log
+crash.*.log
