@@ -38,7 +38,7 @@
   <section class="task-section" aria-label="Your task list">
     <div class="list-toolbar">
       <nav class="filters" aria-label="Filter tasks">
-        {% for value, label in [('all', 'All tasks'), ('open', 'Open'), ('completed', 'Completed')] %}
+        {% for value, label in [('all', 'All tasks'), ('open', 'Open'), ('completed', 'Completed'), ('today', 'Due today')] %}
         <a href="{{ url_for('index', filter=value) }}" class="filter {{ 'active' if active == value else '' }}" {% if active == value %}aria-current="page"{% endif %}>{{ label }}<span class="filter-count">{{ counts[value] }}</span></a>
         {% endfor %}
       </nav>
@@ -67,8 +67,8 @@
       {% else %}
       <div class="empty-state">
         <span class="empty-icon">{{ icon('check' if active == 'open' else 'list') }}</span>
-        <h2>{{ 'All caught up!' if active == 'open' else 'No completed tasks yet' if active == 'completed' else 'A fresh start' }}</h2>
-        <p>{{ 'Your open list is clear. Add a task whenever you need to.' if active == 'open' else 'Check off a task and it will appear here.' if active == 'completed' else 'Add your first task above. A little progress starts here.' }}</p>
+        <h2>{{ 'Nothing due today' if active == 'today' else 'All caught up!' if active == 'open' else 'No completed tasks yet' if active == 'completed' else 'A fresh start' }}</h2>
+        <p>{{ 'No open tasks are due today. Add a task with today’s date to see it here.' if active == 'today' else 'Your open list is clear. Add a task whenever you need to.' if active == 'open' else 'Check off a task and it will appear here.' if active == 'completed' else 'Add your first task above. A little progress starts here.' }}</p>
       </div>
       {% endif %}
       <div class="list-footer"><span>{{ counts.completed }} of {{ counts.all }} tasks completed</span><span>{{ icon('check') }} Saved</span></div>

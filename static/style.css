@@ -16,7 +16,7 @@
   -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
+body { margin: 0; }
 button, input { font: inherit; }
 button, a, summary, input { -webkit-tap-highlight-color: transparent; }
 button, summary { cursor: pointer; }
@@ -81,7 +81,7 @@ input::-webkit-calendar-picker-indicator { opacity: .5; cursor: pointer; padding
 .field-error { margin: 7px 0 0; color: #ae3340; font-size: 14px; }
 .task-section { margin-top: 34px; }
 .list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.filters { display: flex; padding: 4px; border: 1px solid #e9eaf1; border-radius: 10px; background: #eff0f5; gap: 3px; }
+.filters { display: flex; flex-wrap: wrap; padding: 4px; border: 1px solid #e9eaf1; border-radius: 10px; background: #eff0f5; gap: 3px; }
 .filter { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; font-size: 14px; color: #70707e; white-space: nowrap; }
 .filter:hover { color: var(--ink); }
 .filter.active { background: white; border-color: #e4e3ec; color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px #17152608; }

@@ -120,7 +120,10 @@ it was already tracked.
 - Starts with Alice's sample tasks. Switch to Bob from the account menu.
 - Adds a task with a title and an optional due date.
 - Marks a task complete and reopens it.
-- Filters all, open, and completed tasks, with counts.
+- Filters all, open, completed, and Due today tasks, with counts.
+- Due today (`/?filter=today`) shows your open tasks due on the computer's local
+  calendar date. Adding or completing a task keeps this view selected; tasks with
+  another date or no date are saved but do not appear here.
 - Downloads the current person's complete task history as a CSV spreadsheet file.
 - Saves tasks in `.instance/tasker.sqlite3`, including across server restarts.
 
