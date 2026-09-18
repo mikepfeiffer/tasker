@@ -1,0 +1,6 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+web_app_name    = "tasker-your-unique-suffix"
+
+# Optional overrides:
+# resource_group_name = "rg-tasker-westus3"
+# service_plan_name   = "asp-tasker-westus3"
